@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 
 #####
-# VotreNom (VotreMatricule) .~= À MODIFIER =~.
-###
+# leba3207
+####
 
 from pdb import set_trace as dbg  # Utiliser dbg() pour faire un break dans votre code.
 
@@ -24,16 +24,25 @@ class ReseauDeNeurones:
         self.w = w
 
     def parametres(self):
-        return (self.W, self.w)
+        return self.W, self.w
 
     def prediction(self, x):
-        #TODO: .~= À COMPLÉTER =~.
-        pass
+        scores = np.dot(self.W, x)  # TODO: add bias?
+        sum_scores = np.sum(scores)
+        h_t = logistic(sum_scores)
+        prediction = 1 if h_t >= 0.5 else 0
+        return prediction
 
     def mise_a_jour(self, x, y):
-        #TODO: .~= À COMPLÉTER =~.
-        pass
+        h_t = logistic(x)
+        self.W += self.alpha * (y - h_t) * x
 
     def entrainement(self, X, Y):
-        #TODO: .~= À COMPLÉTER =~.
-        pass
+        for t in range(self.T):
+            for index, (x_t, y_t) in enumerate(zip(X, Y)):
+                scores = np.dot(self.W, x_t)  # TODO: add bias?
+                sum_scores = np.sum(scores)
+                h_t = logistic(sum_scores)
+                prediction = 1 if h_t >= 0.5 else 0
+                if prediction != y_t:
+                    self.mise_a_jour(x_t, y_t)
