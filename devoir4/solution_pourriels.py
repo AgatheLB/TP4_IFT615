@@ -43,11 +43,11 @@ class Probabilite():
         nb_doc_c = self.nbDocsParClasse.get(C)
         nb_total_doc = 0
         for classe in self.nbDocsParClasse.keys():
-            nb_total_doc += self.nbDocsParClasse.get(C)
+            nb_total_doc += self.nbDocsParClasse.get(classe)
         return nb_doc_c/nb_total_doc
 
     def probMotEtantDonneClasse(self, C, W, delta):
-        freq_w_doc_c = self.freqWC.get(W, C)
+        freq_w_doc_c = self.freqWC.get((W, C)) if (W, C) in self.freqWC.keys() else 0
         nb_mots_c = self.nbMotsParClasse.get(C)
         lissage_denom = delta * (len(self.vocabulaire) + 1)
         return (delta + freq_w_doc_c) / (lissage_denom + nb_mots_c)
@@ -70,13 +70,13 @@ class Probabilite():
 # retour: Un 'set' contenant l'ensemble des mots ('str') du vocabulaire.
 #
 def creerVocabulaire(documents, seuil):
-    vocabulaire = set()
-    for document in tqdm(documents):
-        words_doc = document.split()
-        for word in words_doc:
-            if word not in vocabulaire and words_doc.count(word) >= seuil:
-                vocabulaire.add(word)
-    return vocabulaire
+    all_words = list()
+    for document in documents:
+        all_words.extend(document.split())
+
+    counter = Counter(all_words)
+    vocabulaire = {key: val for key, val in counter.items() if val >= seuil}
+    return set(vocabulaire.keys())
 
 
 # pretraiter: Fonction qui remplace les mots qui ne font pas parti du vocabulaire
@@ -96,7 +96,7 @@ def pretraiter(doc, V):
             traited_doc.append(word)
         else:
             traited_doc.append('OOV')
-    return doc.split()
+    return traited_doc
 
 
 # entrainer: Fonction permettant d'entraîner les distributions P(C) et P(W|C)
@@ -125,8 +125,8 @@ def entrainer(corpus, P):
     counter_0 = Counter(all_words_0)
     counter_1 = Counter(all_words_1)
 
-    P.nbMotsParClasse[0] = len(counter_0)
-    P.nbMotsParClasse[1] = len(counter_1)
+    P.nbMotsParClasse[0] = len(all_words_0)
+    P.nbMotsParClasse[1] = len(all_words_1)
 
     P.nbDocsParClasse[0] = nb_docs_0
     P.nbDocsParClasse[1] = nb_docs_1
@@ -159,9 +159,8 @@ def predire(doc, P, C, delta):
         prob_a_priori = P.probClasse(c)
         sum_prob_conjointe = 0
         for word in doc:
-            sum_prob_conjointe += P.probMotEtantDonneClasse(c, word, delta)
-
-        prob_jointe[c] = prob_a_priori * sum_prob_conjointe
+            sum_prob_conjointe += np.log(P.probMotEtantDonneClasse(c, word, delta))
+        prob_jointe[c] = np.log(prob_a_priori) + sum_prob_conjointe
 
     best_class = max(prob_jointe, key=prob_jointe.get)
     return best_class, prob_jointe[best_class]
