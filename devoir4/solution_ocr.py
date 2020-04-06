@@ -27,33 +27,37 @@ class ReseauDeNeurones:
         return self.W, self.w
 
     def prediction(self, x):
-        # TODO: add bias?
-        scores_couche_1 = np.dot(self.W, x)
-        h_t_couche_1 = logistic(scores_couche_1)
+        scores_1 = np.dot(self.W, x)
+        h_1 = logistic(scores_1)
 
-        scores_couche_2 = np.dot(self.w, h_t_couche_1)
-        h_t_couche_2 = logistic(scores_couche_2)
+        scores_2 = np.dot(self.w, h_1)
+        h_2 = logistic(scores_2)
 
-        prediction = 1 if h_t_couche_2 >= 0.5 else 0
+        prediction = 1 if h_2 >= 0.5 else 0
         return prediction
 
     def mise_a_jour(self, x, y):
-        scores_couche_1 = np.dot(self.W, x)
-        h_t_couche_1 = logistic(scores_couche_1)
+        scores_1 = np.dot(self.W, x)
+        h_1 = logistic(scores_1)
 
-        scores_couche_2 = np.dot(self.w, h_t_couche_1)
-        h_t_couche_2 = logistic(scores_couche_2)
+        scores_2 = np.dot(self.w, h_1)
+        h_2 = logistic(scores_2)
 
-        grad_output = y - h_t_couche_2
-        self.w = h_t_couche_1 * (y - h_t_couche_1) * self.w * grad_output
+        di_2 = y - h_2
 
-        for i, x_i in enumerate(x):
-            self.W[:, i] = x_i * (y - x_i) * self.W[:, i] * self.w
+        for i in range(self.W.shape[0]):
+            di_1 = h_1[i] * (1 - h_1[i]) * self.w[i] * di_2
+            for n, x_n in enumerate(x):
+                self.W[i, n] += self.alpha * x_n * di_1
+
+        for i, h_i_1 in enumerate(h_1):
+            self.w[i] += self.alpha * h_i_1 * di_2
+
 
 
 
     def entrainement(self, X, Y):
         for t in range(self.T):
             for x_t, y_t in zip(X, Y):
-                if self.prediction(x_t) != y_t:
-                    self.mise_a_jour(x_t, y_t)
+                # if self.prediction(x_t) != y_t: # TODO: to removeha m
+                self.mise_a_jour(x_t, y_t)
