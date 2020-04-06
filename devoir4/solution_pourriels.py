@@ -1,12 +1,13 @@
 # -*- coding: utf-8 -*-
 
 #####
-# VotreNom (VotreMatricule) .~= À MODIFIER =~.
-###
+# leba3207
+####
 
 from pdb import set_trace as dbg  # Utiliser dbg() pour faire un break dans votre code.
 
-from collections import defaultdict
+from collections import defaultdict, Counter
+from tqdm import tqdm
 
 import numpy as np
 import re
@@ -39,12 +40,17 @@ class Probabilite():
         self.vocabulaire = []
 
     def probClasse(self, C):
-        #TODO: .~= À COMPLÉTER =~.
-        return 0.0
+        nb_doc_c = self.nbDocsParClasse.get(C)
+        nb_total_doc = 0
+        for classe in self.nbDocsParClasse.keys():
+            nb_total_doc += self.nbDocsParClasse.get(C)
+        return nb_doc_c/nb_total_doc
 
     def probMotEtantDonneClasse(self, C, W, delta):
-        #TODO: .~= À COMPLÉTER =~.
-        return 0.0
+        freq_w_doc_c = self.freqWC.get(W, C)
+        nb_mots_c = self.nbMotsParClasse.get(C)
+        lissage_denom = delta * (len(self.vocabulaire) + 1)
+        return (delta + freq_w_doc_c) / (lissage_denom + nb_mots_c)
 
     def __call__(self, C, W=None, delta=None):
         if W is None:
@@ -64,8 +70,13 @@ class Probabilite():
 # retour: Un 'set' contenant l'ensemble des mots ('str') du vocabulaire.
 #
 def creerVocabulaire(documents, seuil):
-    #TODO: .~= À COMPLÉTER =~.
-    return set()
+    vocabulaire = set()
+    for document in tqdm(documents):
+        words_doc = document.split()
+        for word in words_doc:
+            if word not in vocabulaire and words_doc.count(word) >= seuil:
+                vocabulaire.add(word)
+    return vocabulaire
 
 
 # pretraiter: Fonction qui remplace les mots qui ne font pas parti du vocabulaire
@@ -78,7 +89,13 @@ def creerVocabulaire(documents, seuil):
 # retour: Une 'list' des mots contenu dans le document et présent dans le vocabulaire.
 #
 def pretraiter(doc, V):
-    #TODO: .~= À COMPLÉTER =~.
+    traited_doc = list()
+    words = doc.split()
+    for word in words:
+        if word in V:
+            traited_doc.append(word)
+        else:
+            traited_doc.append('OOV')
     return doc.split()
 
 
@@ -95,8 +112,29 @@ def pretraiter(doc, V):
 # retour: Rien! L'objet P doit être modifié via ses dictionnaires.
 #
 def entrainer(corpus, P):
-    #TODO: .~= À COMPLÉTER =~.
-    pass
+    all_words_0, all_words_1 = list(), list()
+    nb_docs_0, nb_docs_1 = 0, 0
+    for (x, y) in corpus:
+        if y == 0:
+            all_words_0.extend(x)
+            nb_docs_0 += 1
+        else:
+            all_words_1.extend(x)
+            nb_docs_1 += 1
+
+    counter_0 = Counter(all_words_0)
+    counter_1 = Counter(all_words_1)
+
+    P.nbMotsParClasse[0] = len(counter_0)
+    P.nbMotsParClasse[1] = len(counter_1)
+
+    P.nbDocsParClasse[0] = nb_docs_0
+    P.nbDocsParClasse[1] = nb_docs_1
+
+    for word, count in counter_0.items():
+        P.freqWC[(word, 0)] = count
+    for word, count in counter_1.items():
+        P.freqWC[(word, 1)] = count
 
 
 # predire: Fonction utilisée pour trouver la classe la plus probable à quelle
@@ -115,5 +153,15 @@ def entrainer(corpus, P):
 #         d'un document D=[w_1,...,w_d] et de catégorie c, i.e. P(C=c,D=[w_1,...,w_d]). *N'oubliez pas vos logarithmes!
 #
 def predire(doc, P, C, delta):
-    #TODO: .~= À COMPLÉTER =~.
-    return 1, 0.0
+    prob_jointe = dict()
+
+    for c in C:
+        prob_a_priori = P.probClasse(c)
+        sum_prob_conjointe = 0
+        for word in doc:
+            sum_prob_conjointe += P.probMotEtantDonneClasse(c, word, delta)
+
+        prob_jointe[c] = prob_a_priori * sum_prob_conjointe
+
+    best_class = max(prob_jointe, key=prob_jointe.get)
+    return best_class, prob_jointe[best_class]
