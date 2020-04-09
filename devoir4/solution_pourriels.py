@@ -7,7 +7,6 @@
 from pdb import set_trace as dbg  # Utiliser dbg() pour faire un break dans votre code.
 
 from collections import defaultdict, Counter
-from tqdm import tqdm
 
 import numpy as np
 import re
@@ -47,7 +46,7 @@ class Probabilite():
         return nb_doc_c/nb_total_doc
 
     def probMotEtantDonneClasse(self, C, W, delta):
-        freq_w_doc_c = self.freqWC.get((W, C)) if (W, C) in self.freqWC.keys() else 0
+        freq_w_doc_c = self.freqWC[(W, C)]
         nb_mots_c = self.nbMotsParClasse.get(C)
         lissage_denom = delta * (len(self.vocabulaire) + 1)
         return (delta + freq_w_doc_c) / (lissage_denom + nb_mots_c)
